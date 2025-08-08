@@ -1,4 +1,5 @@
-﻿using UAssetAPI.FieldTypes;
+﻿using System.Diagnostics;
+using UAssetAPI.FieldTypes;
 using UAssetAPI.Kismet.Bytecode;
 using UAssetAPI.Kismet.Bytecode.Expressions;
 
@@ -305,7 +306,10 @@ public class KismetExpressionSerializer
         var jproparray = new JProperty[names.Length];
 
         FProperty property;
-        if (pointer != null && pointer.New.ResolvedOwner.Index != 0)
+        pointer.New ??= new FFieldPath();
+        pointer.New.ResolvedOwner ??= new FPackageIndex();
+		Debug.WriteLine(JsonConvert.SerializeObject(pointer));
+		if (pointer != null && pointer.New.ResolvedOwner.Index != 0)
         {
             if (FindProperty(pointer.New.ResolvedOwner.Index, pointer.New.Path[0], out property, asset, ref importVariables))
             {
@@ -484,7 +488,10 @@ public class KismetExpressionSerializer
             case EX_LetValueOnPersistentFrame exp:
             {
                 jexp.Add("Inst", exp.Inst);
-                jexp.Add("PropertyName", exp.DestinationProperty.New.Path[0].ToName());
+                exp.DestinationProperty.New ??= new FFieldPath();
+                exp.DestinationProperty.New.Path ??= new FName[] { };
+				string path = exp.DestinationProperty.New.Path.Count() > 0 ? exp.DestinationProperty.New.Path[0].ToName() : "##NOT SERIALIZED##";
+				jexp.Add("PropertyName", path);
 
                 index += 8;
                 jexp.Add(SerializePropertyPointer(exp.DestinationProperty, new[] { "PropertyType" }, asset, importVariables));
@@ -496,7 +503,8 @@ public class KismetExpressionSerializer
                 jexp.Add("Inst", exp.Inst);
                 index += 8;
                 jexp.Add(SerializePropertyPointer(exp.Property, new[] { "PropertyType" }, asset, importVariables));
-                jexp.Add("PropertyName", exp.Property.New.Path[0].ToName());
+                string path = exp.Property.New.Path.Count() > 0 ? exp.Property.New.Path[0].ToName() : "##NOT SERIALIZED##";
+                    jexp.Add("PropertyName", path);
                 jexp.Add("StructExpression", SerializeExpression(exp.StructExpression, ref index, asset, importVariables));
                 break;
             }
